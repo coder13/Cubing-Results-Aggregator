@@ -1,0 +1,25 @@
+version: "3.6"
+
+services:
+  # postgres database
+  db:
+    image: postgres:13.2-alpine
+    restart: always
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+      POSTGRES_DB: db
+
+  # cache:
+  #   image: redis:6.2-alpine
+  #   restart: always
+  #   ports:
+  #     - 6379:6379
+  #   command: redis-server --save 20 1 --loglevel warning
+  #   volumes:
+  #     - cache:/data
+volumes:
+  cache:
+    driver: local

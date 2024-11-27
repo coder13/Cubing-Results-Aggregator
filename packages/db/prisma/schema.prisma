@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Person {
+  id     Int      @id @default(autoincrement())
+  subId  Int      @default(autoincrement())
+  name   String
+  wcaId  String   @unique
+  Result Result[]
+
+  competitions Competition[]
+
+  @@unique([id, subId])
+}
+
+model Result {
+  id            Int      @id @default(autoincrement())
+  personId      Int
+  roundId       Int
+  eventId       String
+  competitionId String
+  source        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  Person Person @relation(fields: [personId], references: [id])
+  Round  Round  @relation(fields: [roundId], references: [id])
+}
+
+model Round {
+  id            Int       @id @default(autoincrement())
+  competitionId Int
+  eventId       String
+  roundType     RoundType
+  roundNumber   Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  competition Competition @relation(fields: [competitionId], references: [id])
+  Result      Result[]
+}
+
+enum RoundType {
+  LEGACY_FIRST_ROUND
+  FIRST_ROUND
+  SECOND_ROUND
+  SEMIFINAL
+  FINAL
+}
+
+model Competition {
+  id      Int          @id @default(autoincrement())
+  wcaId   String
+  name    String
+  source  ResultSource
+  persons Person[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rounds Round[]
+}
+
+model Events {
+  id    Int    @id @default(autoincrement())
+  wcaId String
+  name  String
+  rank  Int
+}
+
+enum ResultSource {
+  WCA
+  WCA_LIVE
+}

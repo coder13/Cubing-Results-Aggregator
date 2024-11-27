@@ -1,11 +1,4 @@
-import express from "express";
-import { prismaClient } from "./db";
-
-const app = express();
-
-app.get("/", (_, res) => {
-  res.send("Hello World!");
-});
+import app from "./app";
 
 const PORT = 8080;
 

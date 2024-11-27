@@ -5,19 +5,32 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "dev": "tsx --inspect index.js",
+    "dev": "tsx --inspect --watch index.js",
     "start": "tsx index.js",
     "lint": "eslint ."
   },
   "dependencies": {
     "@prisma/client": "5.22.0",
-    "express": "^4.21.1",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^5",
+    "express-validator": "^7.2.0",
+    "express-zod-api": "^21.1.0",
+    "http-errors": "^2.0.0",
+    "morgan": "^1.10.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
-    "@types/express": "^5.0.0",
-    "globals": "^15.12.0"
+    "@types/express": "^5",
+    "@types/http-errors": "^2.0.4",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0",
+    "nodemon": "^3.1.7",
+    "typescript-eslint": "^8.16.0"
   }
 }

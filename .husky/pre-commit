@@ -1,0 +1,2 @@
+yarn prettier --write . --log-level warn
+git update-index --again
