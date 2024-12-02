@@ -14,63 +14,82 @@ datasource db {
 }
 
 model Person {
-  id     Int      @id @default(autoincrement())
-  subId  Int      @default(autoincrement())
-  name   String
-  wcaId  String   @unique
-  Result Result[]
+  id    Int    @id @default(autoincrement())
+  subId Int    @default(autoincrement())
+  name  String
+  wcaId String @unique
 
-  competitions Competition[]
+  Results      Result[]
+  Rounds       Round[]
+  Competitions Competition[] @relation("PersonCompetitions")
 
   @@unique([id, subId])
+  @@unique([id, wcaId])
 }
 
 model Result {
-  id            Int      @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
+  wcaResultId   Int?         @unique
   personId      Int
+  personWcaId   String
   roundId       Int
   eventId       String
   competitionId String
-  source        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  pos           Int
+  best          Int
+  average       Int
+  attempts      Int[]
+  source        ResultSource
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  Person Person @relation(fields: [personId], references: [id])
-  Round  Round  @relation(fields: [roundId], references: [id])
+  Person      Person      @relation(fields: [personId], references: [id])
+  Round       Round       @relation(fields: [roundId], references: [id])
+  Competition Competition @relation(fields: [competitionId], references: [wcaId])
+
+  @@unique([personId, roundId])
+  @@unique([personWcaId, roundId])
 }
 
 model Round {
   id            Int       @id @default(autoincrement())
-  competitionId Int
+  competitionId String
   eventId       String
-  roundType     RoundType
-  roundNumber   Int
+  type          RoundType
+  number        Int
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  competition Competition @relation(fields: [competitionId], references: [id])
-  Result      Result[]
+  Competition Competition @relation(fields: [competitionId], references: [wcaId])
+  Results     Result[]
+  Person      Person?     @relation(fields: [personId], references: [id])
+  personId    Int?
+
+  @@unique([competitionId, eventId, number])
 }
 
 enum RoundType {
+  LEGACY_QUALIFICATION_ROUND
   LEGACY_FIRST_ROUND
+  LEGACY_ROUND
   FIRST_ROUND
   SECOND_ROUND
-  SEMIFINAL
+  SEMI_FINAL
   FINAL
 }
 
 model Competition {
-  id      Int          @id @default(autoincrement())
-  wcaId   String
-  name    String
-  source  ResultSource
-  persons Person[]
+  id    Int    @default(autoincrement())
+  wcaId String @id
+  name  String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  rounds Round[]
+  Rounds   Round[]
+  Result   Result[]
+  personId Int?
+  Person   Person[] @relation("PersonCompetitions")
 }
 
 model Events {
