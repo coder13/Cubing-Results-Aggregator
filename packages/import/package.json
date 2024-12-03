@@ -6,6 +6,7 @@
   "scripts": {},
   "dependencies": {
     "@datasources/wca": "0.0.0",
+    "@datasources/wca-live": "0.0.0",
     "@prisma/client": "5.22.0",
     "@wca/helpers": "^1.1.5",
     "typescript": "^5.7.2"

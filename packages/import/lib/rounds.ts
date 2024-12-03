@@ -1,4 +1,5 @@
 import { RoundType } from "@prisma/client";
+import { parseActivityCode } from "@wca/helpers";
 
 export type Round = {
   id: string | number;
@@ -119,4 +120,12 @@ export const getRoundTypeFromRoundNumber = (
   }
 
   throw new Error(`Unknown round number: ${roundNumber}`);
+};
+
+export const getRoundNumberFromRoundId = (roundId: string) => {
+  const { roundNumber } = parseActivityCode(roundId);
+  if (!roundNumber) {
+    throw new Error("WCIF Parse Error: roundId is missing roundNumber");
+  }
+  return roundNumber;
 };

@@ -3,7 +3,7 @@ import { ApiCompetition, ApiResult } from "./types";
 
 export class WcaApi {
   constructor(
-    private readonly baseUrl: string = "https://staging.worldcubeassociation.org/api/v0",
+    private readonly baseUrl: string = "https://api.worldcubeassociation.org",
   ) {}
 
   async fetch<T>(path: string, options = {}) {
@@ -21,14 +21,6 @@ export class WcaApi {
       `${path}${searchParams && "?" + searchParams}`,
       options,
     );
-  }
-
-  async post(path: string, body = {}, options = {}) {
-    return await this.fetch(path, {
-      ...options,
-      method: "POST",
-      body: JSON.stringify(body),
-    });
   }
 
   async getCompetitions() {

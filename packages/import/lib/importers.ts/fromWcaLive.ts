@@ -1,34 +1,35 @@
 import { WcaApi } from "@datasources/wca";
 import { prisma } from "../db";
-import { parseActivityCode } from "@wca/helpers";
-import { Prisma, ResultSource } from "@prisma/client";
 import {
   upsertCompetition,
   upsertPeopleAndRegistrationsFromWcif,
   upsertRoundsFromWcif,
 } from "../helpers";
+import { WcaLiveApi } from "@datasources/wca-live";
+import { Prisma, ResultSource } from "@prisma/client";
 
-/**
- * Import a competition and results from the wca website via the WCIF.
- */
-export const importFromWcif = async (_competitionId: string) => {
+export const importFromWcaLive = async (_competitionId: string) => {
   const wcaApi = new WcaApi();
-
-  // await new Promise((resolve) => setTimeout(resolve, 10000));
+  const wcaLiveApi = new WcaLiveApi();
 
   const wcif = await wcaApi.getWcifByCompetitionId(_competitionId);
   if (!wcif) {
     throw new Error(`No WCIF found for competition ${_competitionId}`);
   }
 
+  const liveResults = await wcaLiveApi.getResultsByCompetitionId(wcif.id);
+
+  if (!liveResults) {
+    throw new Error(`No live results found for competition ${_competitionId}`);
+  }
+
   const competitionId = wcif.id;
 
-  console.log("Importing results from wcif", wcif.name);
+  console.log("Importing results from wca live", wcif.name);
 
   await prisma.$transaction(async () => {
-    upsertCompetition(wcif);
+    await upsertCompetition(wcif);
 
-    // Includes people already in and new people with all statuses updated
     const { allAcceptedPeople, getPersonIdFromWcaUserId } =
       await upsertPeopleAndRegistrationsFromWcif(wcif);
 
@@ -40,29 +41,39 @@ export const importFromWcif = async (_competitionId: string) => {
         roundNumber: true,
         personId: true,
       },
-      data: wcif.events.flatMap(({ id: eventId, rounds }) =>
-        rounds.flatMap(({ id: roundId, ...round }) =>
-          round.results.map((result) => {
+      data: liveResults.events.flatMap(({ eventId, rounds }) =>
+        rounds.flatMap(({ number: roundNumber, results }) =>
+          results.map((result) => {
             const wcifPerson = wcif.persons.find(
               (p) => p.registrantId === result.personId,
             );
 
             if (!wcifPerson) {
+              console.log(
+                109,
+                result.personId,
+                wcif.persons.map((i) => ({
+                  name: i.name,
+                  registrantId: i.registrantId,
+                })),
+              );
               throw new Error(`Person not found ${result.personId}`);
             }
 
-            const { roundNumber } = parseActivityCode(roundId) as {
-              roundNumber: number;
-            };
+            const personId = getPersonIdFromWcaUserId(wcifPerson.wcaUserId);
+
+            if (!personId) {
+              throw new Error(`Person not found ${wcifPerson.registrantId}`);
+            }
 
             const data: Prisma.ResultCreateManyInput = {
               competitionId,
               eventId,
               roundNumber,
               personId: getPersonIdFromWcaUserId(wcifPerson.wcaUserId),
-              source: ResultSource.WCA_WCIF,
+              source: ResultSource.WCA_LIVE,
               best: result.best,
-              attempts: result.attempts.map((i) => i.result),
+              attempts: result.attempts,
               pos: result.ranking,
               average: result.average,
             };
@@ -74,15 +85,13 @@ export const importFromWcif = async (_competitionId: string) => {
       skipDuplicates: true,
     });
 
-    // update results already in db
-    await Promise.all(
-      wcif.events.flatMap(({ id: eventId, ...event }) =>
-        event.rounds.flatMap(({ id: roundId, ...round }) =>
-          round.results.flatMap((result) => {
-            const { roundNumber } = parseActivityCode(roundId) as {
-              roundNumber: number;
-            };
+    console.log(`Created ${newResults.length} new results`);
 
+    let changed = 0;
+    await Promise.all(
+      liveResults.events.flatMap(({ eventId, rounds }) =>
+        rounds.flatMap(({ number: roundNumber, results }) =>
+          results.map((result) => {
             const registrantId = result.personId;
             const wcifPerson = wcif.persons.find(
               (p) => p.registrantId === registrantId,
@@ -96,7 +105,7 @@ export const importFromWcif = async (_competitionId: string) => {
             if (
               newResults.some(
                 (r) =>
-                  r.personId === registrantId &&
+                  r.personId === personId &&
                   r.eventId === eventId &&
                   r.roundNumber === roundNumber,
               )
@@ -117,6 +126,8 @@ export const importFromWcif = async (_competitionId: string) => {
               );
             }
 
+            changed++;
+
             return prisma.result.update({
               where: {
                 personIdCER: {
@@ -128,14 +139,16 @@ export const importFromWcif = async (_competitionId: string) => {
               },
               data: {
                 best: result.best,
-                attempts: result.attempts.map((a) => a.result),
+                attempts: result.attempts,
                 average: result.average,
-                source: ResultSource.WCA_WCIF,
+                source: ResultSource.WCA_LIVE,
               },
             });
           }),
         ),
       ),
     );
+
+    console.log(`Updated ${changed} results`);
   });
 };
