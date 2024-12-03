@@ -1,1 +1,1 @@
-lint test
+yarn turbo lint
