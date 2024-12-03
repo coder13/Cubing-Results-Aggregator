@@ -5,19 +5,28 @@ import {
   getRoundNumberFromRoundId,
   getRoundTypeFromRoundNumber,
 } from "./rounds";
+import { ApiCompetition } from "@datasources/wca/types";
 
-export const upsertCompetition = (wcif: Competition) => {
+export const upsertCompetition = (comp: ApiCompetition) => {
+  const what = {
+    name: comp.name,
+    cityName: comp.city,
+    countryId: comp.country_iso2,
+    startDate: comp.start_date,
+    endDate: comp.end_date,
+    cancelled_at: comp.cancelled_at,
+    eventIds: comp.event_ids,
+  };
+
   return prisma.competition.upsert({
     where: {
-      wcaId: wcif.id,
+      wcaId: comp.id,
     },
     create: {
-      wcaId: wcif.id,
-      name: wcif.name,
+      wcaId: comp.id,
+      ...what,
     },
-    update: {
-      name: wcif.name,
-    },
+    update: what,
   });
 };
 
@@ -138,7 +147,7 @@ export const upsertRoundsFromWcif = async ({
   // update round types for existing rounds
   return await Promise.all(
     wcif.events.flatMap(({ id: eventId, rounds }) => {
-      return rounds.map(async ({ id: roundId }) => {
+      return rounds.map(async ({ id: roundId, ...round }) => {
         const roundNumber = getRoundNumberFromRoundId(roundId);
 
         if (!roundNumber) {
@@ -163,6 +172,7 @@ export const upsertRoundsFromWcif = async ({
             eventId,
             number: roundNumber!,
             type: roundType,
+            formatId: round.format,
           },
           update: {
             type: roundType,

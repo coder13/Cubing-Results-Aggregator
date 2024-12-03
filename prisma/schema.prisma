@@ -33,6 +33,7 @@ model Result {
   id            Int          @id @default(autoincrement())
   wcaResultId   Int?         @unique
   personId      Int
+  registrantId  Int?
   competitionId String
   eventId       String
   roundNumber   Int
@@ -47,7 +48,7 @@ model Result {
   Person       Person        @relation(fields: [personId], references: [id])
   Competition  Competition   @relation(fields: [competitionId], references: [wcaId])
   Round        Round         @relation(fields: [competitionId, eventId, roundNumber], references: [competitionId, eventId, number])
-  Registration Registration? @relation(fields: [personId, competitionId], references: [personId, competitionId])
+  Registration Registration? @relation(fields: [registrantId, competitionId], references: [registrantId, competitionId])
 
   @@unique([personId, competitionId, eventId, roundNumber], name: "personIdCER")
 }
@@ -59,6 +60,7 @@ model Round {
   type          RoundType
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  formatId      String
 
   Competition Competition @relation(fields: [competitionId], references: [wcaId])
   Results     Result[]
@@ -78,9 +80,15 @@ enum RoundType {
 }
 
 model Competition {
-  id    Int    @default(autoincrement())
-  wcaId String @id @unique
-  name  String
+  id           Int      @default(autoincrement())
+  wcaId        String   @id @unique
+  name         String
+  startDate    String
+  endDate      String
+  cancelled_at String?
+  cityName     String
+  countryId    String
+  eventIds     String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -98,6 +106,7 @@ model Registration {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   status        RegistrationStatus
+  eventIds      String[]
 
   Competition Competition @relation(fields: [competitionId], references: [wcaId])
   Person      Person      @relation(fields: [personId], references: [id])
@@ -109,7 +118,7 @@ model Registration {
 
 model Event {
   id    Int    @id @default(autoincrement())
-  wcaId String
+  wcaId String @unique
   name  String
   rank  Int
 }

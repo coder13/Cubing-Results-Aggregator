@@ -28,3 +28,35 @@ export type ApiResult = {
   regional_single_record: string;
   regional_average_record: string;
 };
+
+export type APIPerson = {
+  id: string;
+  created_at: string | null;
+  updated_at: string;
+  name: string;
+  wca_id: string;
+  gender: string;
+  country_iso2: string;
+  country: {
+    id: string;
+    name: string;
+    continentId: string;
+    iso2: string;
+  };
+  delegate_status: string | null;
+  class: string;
+  avatar: Avatar;
+};
+
+export type Avatar = {
+  id: null;
+  status: string;
+  thumbnail_crop_x: number;
+  thumbnail_crop_y: number;
+  thumbnail_crop_w: number;
+  thumbnail_crop_h: number;
+  url: string;
+  thumb_url: string;
+  is_default: boolean;
+  can_edit_thumbnail: boolean;
+};

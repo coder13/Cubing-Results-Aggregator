@@ -12,6 +12,8 @@ export const importFromWcaLive = async (_competitionId: string) => {
   const wcaApi = new WcaApi();
   const wcaLiveApi = new WcaLiveApi();
 
+  const comp = await wcaApi.getCompetitionById(_competitionId);
+
   const wcif = await wcaApi.getWcifByCompetitionId(_competitionId);
   if (!wcif) {
     throw new Error(`No WCIF found for competition ${_competitionId}`);
@@ -28,7 +30,7 @@ export const importFromWcaLive = async (_competitionId: string) => {
   console.log("Importing results from wca live", wcif.name);
 
   await prisma.$transaction(async () => {
-    await upsertCompetition(wcif);
+    await upsertCompetition(comp);
 
     const { allAcceptedPeople, getPersonIdFromWcaUserId } =
       await upsertPeopleAndRegistrationsFromWcif(wcif);
@@ -49,14 +51,6 @@ export const importFromWcaLive = async (_competitionId: string) => {
             );
 
             if (!wcifPerson) {
-              console.log(
-                109,
-                result.personId,
-                wcif.persons.map((i) => ({
-                  name: i.name,
-                  registrantId: i.registrantId,
-                })),
-              );
               throw new Error(`Person not found ${result.personId}`);
             }
 
@@ -113,19 +107,6 @@ export const importFromWcaLive = async (_competitionId: string) => {
               return;
             }
 
-            if (
-              !allAcceptedPeople.some((p) =>
-                p.Registrations.some((r) => r.registrantId === registrantId),
-              )
-            ) {
-              console.log(
-                261,
-                wcifPerson.name,
-                "not registered for",
-                competitionId,
-              );
-            }
-
             changed++;
 
             return prisma.result.update({
@@ -141,6 +122,7 @@ export const importFromWcaLive = async (_competitionId: string) => {
                 best: result.best,
                 attempts: result.attempts,
                 average: result.average,
+                pos: result.ranking,
                 source: ResultSource.WCA_LIVE,
               },
             });

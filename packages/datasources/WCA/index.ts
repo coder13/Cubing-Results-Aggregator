@@ -1,5 +1,5 @@
 import { Competition } from "@wca/helpers";
-import { ApiCompetition, ApiResult } from "./types";
+import { ApiCompetition, APIPerson, ApiResult } from "./types";
 
 export class WcaApi {
   constructor(
@@ -23,8 +23,16 @@ export class WcaApi {
     );
   }
 
-  async getCompetitions() {
-    return this.get<ApiCompetition[]>(`/competitions`);
+  async getCompetitions(params: {
+    country_iso2?: string;
+    start?: string;
+    end?: string;
+    ongoing_and_future?: string;
+    sort?: string;
+    page?: number;
+    announced_after?: string;
+  }) {
+    return this.get<ApiCompetition[]>(`/competitions`, params);
   }
 
   async getCompetitionById(competitionId: string) {
@@ -33,6 +41,9 @@ export class WcaApi {
 
   async getResultsByCompetitionId(competitionId: string) {
     return this.get<ApiResult[]>(`/competitions/${competitionId}/results`);
+  }
+  async getCompetitorsByCompetitionId(competitionId: string) {
+    return this.get<APIPerson[]>(`/competitions/${competitionId}/competitors`);
   }
 
   async getWcifByCompetitionId(competitionId: string) {

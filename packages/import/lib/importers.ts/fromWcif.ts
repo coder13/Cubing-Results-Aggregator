@@ -15,6 +15,7 @@ export const importFromWcif = async (_competitionId: string) => {
   const wcaApi = new WcaApi();
 
   // await new Promise((resolve) => setTimeout(resolve, 10000));
+  const comp = await wcaApi.getCompetitionById(_competitionId);
 
   const wcif = await wcaApi.getWcifByCompetitionId(_competitionId);
   if (!wcif) {
@@ -26,7 +27,7 @@ export const importFromWcif = async (_competitionId: string) => {
   console.log("Importing results from wcif", wcif.name);
 
   await prisma.$transaction(async () => {
-    upsertCompetition(wcif);
+    await upsertCompetition(comp);
 
     // Includes people already in and new people with all statuses updated
     const { allAcceptedPeople, getPersonIdFromWcaUserId } =
@@ -65,6 +66,7 @@ export const importFromWcif = async (_competitionId: string) => {
               attempts: result.attempts.map((i) => i.result),
               pos: result.ranking,
               average: result.average,
+              registrantId: result.personId,
             };
 
             return data;
@@ -104,19 +106,6 @@ export const importFromWcif = async (_competitionId: string) => {
               return;
             }
 
-            if (
-              !allAcceptedPeople.some((p) =>
-                p.Registrations.some((r) => r.registrantId === registrantId),
-              )
-            ) {
-              console.log(
-                261,
-                wcifPerson.name,
-                "not registered for",
-                competitionId,
-              );
-            }
-
             return prisma.result.update({
               where: {
                 personIdCER: {
@@ -130,7 +119,9 @@ export const importFromWcif = async (_competitionId: string) => {
                 best: result.best,
                 attempts: result.attempts.map((a) => a.result),
                 average: result.average,
+                pos: result.ranking,
                 source: ResultSource.WCA_WCIF,
+                registrantId,
               },
             });
           }),

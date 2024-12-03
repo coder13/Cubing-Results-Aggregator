@@ -20,7 +20,7 @@ const rounds: Round[] = [
     type: RoundType.LEGACY_QUALIFICATION_ROUND,
   },
   {
-    id: 0,
+    id: "0",
     rank: 19,
     name: "Qualification round",
     cellName: "Qualification round",
@@ -36,7 +36,7 @@ const rounds: Round[] = [
     type: RoundType.FIRST_ROUND,
   },
   {
-    id: 1,
+    id: "1",
     rank: 29,
     name: "First round",
     cellName: "First round",
@@ -52,7 +52,7 @@ const rounds: Round[] = [
     type: RoundType.LEGACY_ROUND,
   },
   {
-    id: 2,
+    id: "2",
     rank: 50,
     name: "Second round",
     cellName: "Second round",
