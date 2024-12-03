@@ -14,58 +14,57 @@ datasource db {
 }
 
 model Person {
-  id    Int    @id @default(autoincrement())
-  subId Int    @default(autoincrement())
-  name  String
-  wcaId String @unique
+  id        Int     @id @default(autoincrement())
+  wcaUserId Int?
+  name      String
+  subId     Int?    @default(autoincrement())
+  wcaId     String?
+  countryId String
 
-  Results      Result[]
-  Rounds       Round[]
-  Competitions Competition[] @relation("PersonCompetitions")
+  Results       Result[]
+  Competitions  Competition[]  @relation("PersonCompetitions")
+  Registrations Registration[]
 
-  @@unique([id, subId])
-  @@unique([id, wcaId])
+  @@unique([wcaId, subId])
+  @@unique([wcaUserId, subId])
 }
 
 model Result {
   id            Int          @id @default(autoincrement())
   wcaResultId   Int?         @unique
   personId      Int
-  personWcaId   String
-  roundId       Int
-  eventId       String
   competitionId String
-  pos           Int
+  eventId       String
+  roundNumber   Int
+  pos           Int?
   best          Int
-  average       Int
+  average       Int?
   attempts      Int[]
   source        ResultSource
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  Person      Person      @relation(fields: [personId], references: [id])
-  Round       Round       @relation(fields: [roundId], references: [id])
-  Competition Competition @relation(fields: [competitionId], references: [wcaId])
+  Person       Person        @relation(fields: [personId], references: [id])
+  Competition  Competition   @relation(fields: [competitionId], references: [wcaId])
+  Round        Round         @relation(fields: [competitionId, eventId, roundNumber], references: [competitionId, eventId, number])
+  Registration Registration? @relation(fields: [personId, competitionId], references: [personId, competitionId])
 
-  @@unique([personId, roundId])
-  @@unique([personWcaId, roundId])
+  @@unique([personId, competitionId, eventId, roundNumber], name: "personIdCER")
 }
 
 model Round {
-  id            Int       @id @default(autoincrement())
   competitionId String
   eventId       String
-  type          RoundType
   number        Int
+  type          RoundType
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   Competition Competition @relation(fields: [competitionId], references: [wcaId])
   Results     Result[]
-  Person      Person?     @relation(fields: [personId], references: [id])
-  personId    Int?
 
-  @@unique([competitionId, eventId, number])
+  @@id([competitionId, eventId, number])
+  @@unique([competitionId, eventId, type])
 }
 
 enum RoundType {
@@ -80,19 +79,35 @@ enum RoundType {
 
 model Competition {
   id    Int    @default(autoincrement())
-  wcaId String @id
+  wcaId String @id @unique
   name  String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  Rounds   Round[]
-  Result   Result[]
-  personId Int?
-  Person   Person[] @relation("PersonCompetitions")
+  Rounds        Round[]
+  Results       Result[]
+  Competitors   Person[]       @relation("PersonCompetitions")
+  Registrations Registration[]
 }
 
-model Events {
+model Registration {
+  competitionId String
+  personId      Int
+  registrantId  Int
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  status        RegistrationStatus
+
+  Competition Competition @relation(fields: [competitionId], references: [wcaId])
+  Person      Person      @relation(fields: [personId], references: [id])
+  Result      Result[]
+
+  @@id([competitionId, personId])
+  @@unique([competitionId, registrantId])
+}
+
+model Event {
   id    Int    @id @default(autoincrement())
   wcaId String
   name  String
@@ -100,6 +115,12 @@ model Events {
 }
 
 enum ResultSource {
-  WCA
+  WCA_OFFICIAL
+  WCA_WCIF
   WCA_LIVE
+}
+
+enum RegistrationStatus {
+  ACCEPTED
+  DELETED
 }
