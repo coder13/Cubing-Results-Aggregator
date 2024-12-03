@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@wca/helpers": "^1.1.5",
+    "dataloader": "^2.2.3",
     "typescript": "^5.7.2"
   }
 }

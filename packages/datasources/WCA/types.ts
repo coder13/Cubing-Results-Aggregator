@@ -37,12 +37,7 @@ export type APIPerson = {
   wca_id: string;
   gender: string;
   country_iso2: string;
-  country: {
-    id: string;
-    name: string;
-    continentId: string;
-    iso2: string;
-  };
+  country: CountryMetadata;
   delegate_status: string | null;
   class: string;
   avatar: Avatar;
@@ -59,4 +54,26 @@ export type Avatar = {
   thumb_url: string;
   is_default: boolean;
   can_edit_thumbnail: boolean;
+};
+
+export type SimpleApiUser = {
+  /**
+   * WCA User ID
+   */
+  id: number;
+  name: string;
+  /**
+   * User ID
+   */
+  wca_id: string;
+  gender: string;
+  country_iso2: string;
+  country: CountryMetadata;
+};
+
+export type CountryMetadata = {
+  id: string;
+  name: string;
+  continentId: string;
+  iso2: string;
 };

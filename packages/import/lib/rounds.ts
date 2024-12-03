@@ -2,7 +2,7 @@ import { RoundType } from "@prisma/client";
 import { parseActivityCode } from "@wca/helpers";
 
 export type Round = {
-  id: string | number;
+  id: string;
   rank: number;
   name: string;
   cellName: string;
@@ -76,7 +76,7 @@ const rounds: Round[] = [
     type: RoundType.SEMI_FINAL,
   },
   {
-    id: 3,
+    id: "3",
     rank: 79,
     name: "Semi Final",
     cellName: "Semi Final",
@@ -101,8 +101,13 @@ const rounds: Round[] = [
   },
 ];
 
-export const getRoundTypeFromId = (roundId: string | number) =>
-  rounds.find((round) => round.id === roundId);
+export const getRoundTypeFromId = (roundId: string) => {
+  const round = rounds.find((round) => round.id === roundId);
+  if (!round) {
+    throw new Error(`Round metadata not found for roundId ${roundId}`);
+  }
+  return round;
+};
 
 export const getRoundTypeFromRoundNumber = (
   roundCount: number,
