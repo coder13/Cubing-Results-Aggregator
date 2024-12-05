@@ -1,12 +1,12 @@
 import { WcaApi } from "@datasources/wca";
-import { prisma } from "../db";
+import { prisma } from "../lib/db";
 import { parseActivityCode } from "@wca/helpers";
 import { Prisma, ResultSource } from "@prisma/client";
 import {
   upsertCompetition,
   upsertPeopleAndRegistrationsFromWcif,
   upsertRoundsFromWcif,
-} from "../helpers";
+} from "../lib/helpers";
 
 /**
  * Import a competition and results from the wca website via the WCIF.

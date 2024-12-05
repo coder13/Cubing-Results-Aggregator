@@ -1,12 +1,12 @@
 import { SimpleApiUser, WcaApi } from "@datasources/wca";
-import { prisma } from "../db";
+import { prisma } from "../lib/db";
 import {
   bulkCreateOfficalResults,
   upsertCompetition,
   upsertRoundsFromResults,
-} from "../helpers";
+} from "../lib/helpers";
 import { Prisma, ResultSource } from "@prisma/client";
-import { getRoundTypeFromId } from "../rounds";
+import { getRoundTypeFromId } from "../lib/rounds";
 
 const wcaApi = new WcaApi();
 

@@ -1,10 +1,10 @@
 import { WcaApi } from "@datasources/wca";
-import { prisma } from "../db";
+import { prisma } from "../lib/db";
 import {
   bulkCreateOfficalResults,
   upsertCompetition,
   upsertRoundsFromResults,
-} from "../helpers";
+} from "../lib/helpers";
 
 /**
  * Import a competition and results from the wca website

@@ -1,10 +1,10 @@
 import { WcaApi } from "@datasources/wca";
-import { prisma } from "../db";
+import { prisma } from "../lib/db";
 import {
   upsertCompetition,
   upsertPeopleAndRegistrationsFromWcif,
   upsertRoundsFromWcif,
-} from "../helpers";
+} from "../lib/helpers";
 import { WcaLiveApi } from "@datasources/wca-live";
 import { Prisma, ResultSource } from "@prisma/client";
 
