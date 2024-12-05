@@ -17,7 +17,6 @@ model Person {
   id        Int     @id @default(autoincrement())
   wcaUserId Int?
   name      String
-  subId     Int?    @default(autoincrement())
   wcaId     String?
   countryId String
 
@@ -25,8 +24,8 @@ model Person {
   Competitions  Competition[]  @relation("PersonCompetitions")
   Registrations Registration[]
 
-  @@unique([wcaId, subId])
-  @@unique([wcaUserId, subId])
+  @@unique([wcaId, countryId])
+  @@unique([wcaUserId, countryId])
 }
 
 model Result {
@@ -49,8 +48,26 @@ model Result {
   Competition  Competition   @relation(fields: [competitionId], references: [wcaId])
   Round        Round         @relation(fields: [competitionId, eventId, roundNumber], references: [competitionId, eventId, number])
   Registration Registration? @relation(fields: [registrantId, competitionId], references: [registrantId, competitionId])
+  Records      Records[]
 
   @@unique([personId, competitionId, eventId, roundNumber], name: "personIdCER")
+}
+
+model Records {
+  id         Int        @id @default(autoincrement())
+  date       String
+  eventId    String
+  resultId   Int
+  type       RecordType
+  regionType RegionType
+  countryId  String?
+  continent  String?
+  valid_from String
+  valid_to   String?
+
+  Result Result @relation(fields: [resultId], references: [id])
+
+  @@unique([date, eventId, type, countryId, continent])
 }
 
 model Round {
@@ -132,4 +149,16 @@ enum ResultSource {
 enum RegistrationStatus {
   ACCEPTED
   DELETED
+}
+
+enum RecordType {
+  SINGLE
+  AVERAGE
+}
+
+enum RegionType {
+  WORLD
+  CONTINENT
+  COUNTRY
+  PERSONAL
 }

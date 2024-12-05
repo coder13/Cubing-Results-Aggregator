@@ -38,7 +38,7 @@ export const importFromWca = async (_competitionId: string) => {
   await prisma.$transaction(async () => {
     await upsertCompetition(comp);
 
-    upsertCompetitors(users);
+    upsertCompetitors(competitionId, users);
 
     const allPersons = await prisma.person.findMany({
       where: {
@@ -107,31 +107,43 @@ export const importFromWca = async (_competitionId: string) => {
  * Links wcaIds to users based on the wcaUserId
  * Makes name and country changes if necessary
  */
-async function upsertCompetitors(users: SimpleApiUser[]) {
+async function upsertCompetitors(
+  competitionId: string,
+  users: SimpleApiUser[],
+) {
   Promise.all(
     users.map(async (user) => {
       if (user instanceof Error) {
         return;
       }
 
-      const data: Prisma.PersonCreateInput = {
+      const update: Prisma.PersonUpdateInput = {
         name: user.name,
         wcaId: user.wca_id,
+        Competitions: {
+          connect: {
+            wcaId: competitionId,
+          },
+        },
+      };
+
+      const create: Prisma.PersonUncheckedCreateInput = {
+        ...update,
         countryId: user.country_iso2,
+        name: user.name,
+        wcaUserId: user.id,
+        wcaId: user.wca_id,
       };
 
       return prisma.person.upsert({
         where: {
-          wcaUserId_subId: {
+          wcaUserId_countryId: {
+            countryId: user.country_iso2,
             wcaUserId: user.id,
-            subId: 1,
           },
         },
-        create: {
-          wcaUserId: user.id,
-          ...data,
-        },
-        update: data,
+        create: create,
+        update: update,
       });
     }),
   );

@@ -30,7 +30,6 @@ export const importFromWcaLegacy = async (_competitionId: string) => {
         wcaId: competitor.id,
         name: competitor.name,
         countryId: competitor.country_iso2,
-        subId: 1,
       })),
       skipDuplicates: true,
     });

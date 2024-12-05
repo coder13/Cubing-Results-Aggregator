@@ -53,13 +53,14 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
           registration && registration.status === "accepted",
       )
       .map((person) => {
-        return {
+        const data: Prisma.PersonCreateManyInput = {
           wcaUserId: person.wcaUserId,
           wcaId: person.wcaId,
-          subId: 1,
           name: person.name,
           countryId: person.countryIso2,
         };
+
+        return data;
       }),
     skipDuplicates: true,
   });
@@ -73,6 +74,17 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
     },
   });
 
+  await prisma.competition.update({
+    where: {
+      wcaId: competitionId,
+    },
+    data: {
+      Competitors: {
+        connect: persons,
+      },
+    },
+  });
+
   const getPersonIdFromWcaUserId = (wcaUserId: number) => {
     const person = persons.find((p) => p.wcaUserId === wcaUserId);
     if (!person) {
@@ -81,7 +93,7 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
     return person.id;
   };
 
-  await prisma.registration.createMany({
+  const newPeople = await prisma.registration.createManyAndReturn({
     data: wcif.persons
       .filter(
         ({ registration }) =>
