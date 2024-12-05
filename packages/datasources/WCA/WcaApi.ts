@@ -77,4 +77,15 @@ export class WcaApi {
     });
     return users;
   }
+
+  async getCountries() {
+    return this.get<
+      {
+        id: string;
+        name: string;
+        continentId: string;
+        iso2: string;
+      }[]
+    >("/countries");
+  }
 }

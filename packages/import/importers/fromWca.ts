@@ -56,6 +56,7 @@ export const importFromWca = async (_competitionId: string) => {
     });
 
     await bulkCreateOfficalResults(
+      comp,
       competitionId,
       allPersons,
       allRounds,
@@ -89,6 +90,7 @@ export const importFromWca = async (_competitionId: string) => {
           best: result.best,
           average: result.average,
           source: ResultSource.WCA_OFFICIAL,
+          date: comp.start_date,
         };
 
         return prisma.result.update({
@@ -128,7 +130,7 @@ async function upsertCompetitors(
 
       const create: Prisma.PersonUncheckedCreateInput = {
         ...update,
-        countryId: user.country_iso2,
+        countryIso2: user.country_iso2,
         name: user.name,
         wcaUserId: user.id,
         wcaId: user.wca_id,
@@ -136,9 +138,9 @@ async function upsertCompetitors(
 
       return prisma.person.upsert({
         where: {
-          wcaUserId_countryId: {
-            countryId: user.country_iso2,
+          wcaUserId_countryIso2: {
             wcaUserId: user.id,
+            countryIso2: user.country_iso2,
           },
         },
         create: create,

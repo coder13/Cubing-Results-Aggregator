@@ -7,7 +7,7 @@ import {
   upsertPeopleAndRegistrationsFromWcif,
   upsertRoundsFromWcif,
 } from "../lib/helpers";
-import { updateRecords } from "../lib/records";
+import { recalculateRecords } from "../lib/records";
 
 /**
  * Import a competition and results from the wca website via the WCIF.
@@ -43,7 +43,7 @@ export const importFromWcif = async (_competitionId: string) => {
         personId: true,
         Person: {
           select: {
-            countryId: true,
+            countryIso2: true,
           },
         },
       },
@@ -73,6 +73,7 @@ export const importFromWcif = async (_competitionId: string) => {
               pos: result.ranking,
               average: result.average,
               registrantId: result.personId,
+              date: comp.start_date,
             };
 
             return data;
@@ -136,5 +137,5 @@ export const importFromWcif = async (_competitionId: string) => {
     );
   });
 
-  await updateRecords(competitionId);
+  await recalculateRecords(comp.start_date);
 };

@@ -52,12 +52,12 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
         ({ registration }) =>
           registration && registration.status === "accepted",
       )
-      .map((person) => {
+      .map(({ wcaUserId, wcaId, name, countryIso2 }) => {
         const data: Prisma.PersonCreateManyInput = {
-          wcaUserId: person.wcaUserId,
-          wcaId: person.wcaId,
-          name: person.name,
-          countryId: person.countryIso2,
+          wcaUserId,
+          wcaId,
+          name,
+          countryIso2,
         };
 
         return data;
@@ -263,6 +263,7 @@ export const upsertRoundsFromResults = async (
 };
 
 export const bulkCreateOfficalResults = async (
+  comp: ApiCompetition,
   competitionId: string,
   allPersons: Person[],
   allRounds: Round[],
@@ -290,6 +291,7 @@ export const bulkCreateOfficalResults = async (
         average: result.average,
         attempts: result.attempts,
         source: ResultSource.WCA_OFFICIAL,
+        date: comp.start_date,
       };
 
       return data;

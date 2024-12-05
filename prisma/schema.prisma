@@ -14,18 +14,19 @@ datasource db {
 }
 
 model Person {
-  id        Int     @id @default(autoincrement())
-  wcaUserId Int?
-  name      String
-  wcaId     String?
-  countryId String
+  id          Int     @id @default(autoincrement())
+  wcaUserId   Int?
+  name        String
+  wcaId       String?
+  countryIso2 String
 
   Results       Result[]
   Competitions  Competition[]  @relation("PersonCompetitions")
   Registrations Registration[]
+  Country       Country        @relation(fields: [countryIso2], references: [iso2])
 
-  @@unique([wcaId, countryId])
-  @@unique([wcaUserId, countryId])
+  @@unique([wcaId, countryIso2])
+  @@unique([wcaUserId, countryIso2])
 }
 
 model Result {
@@ -40,6 +41,7 @@ model Result {
   best          Int
   average       Int?
   attempts      Int[]
+  date          String
   source        ResultSource
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -48,25 +50,27 @@ model Result {
   Competition  Competition   @relation(fields: [competitionId], references: [wcaId])
   Round        Round         @relation(fields: [competitionId, eventId, roundNumber], references: [competitionId, eventId, number])
   Registration Registration? @relation(fields: [registrantId, competitionId], references: [registrantId, competitionId])
-  Records      Records[]
+  Records      Record[]
 
   @@unique([personId, competitionId, eventId, roundNumber], name: "personIdCER")
 }
 
-model Records {
-  id         Int        @id @default(autoincrement())
-  eventId    String
-  resultId   Int
-  type       RecordType
-  regionType RegionType
-  countryId  String?
-  continent  String?
-  valid_from String
-  valid_to   String?
+model Record {
+  id          Int        @id @default(autoincrement())
+  eventId     String
+  resultId    Int
+  type        RecordType
+  regionType  RegionType
+  countryId   String?
+  continentId String?
+  valid_from  String
+  valid_to    String?
 
-  Result Result @relation(fields: [resultId], references: [id])
+  Result    Result     @relation(fields: [resultId], references: [id])
+  Country   Country?   @relation(fields: [countryId], references: [id])
+  Continent Continent? @relation(fields: [continentId], references: [id])
 
-  @@unique([resultId, eventId, type, regionType])
+  @@unique([resultId, type, regionType])
 }
 
 model Round {
@@ -130,6 +134,25 @@ model Registration {
 
   @@id([competitionId, personId])
   @@unique([competitionId, registrantId])
+}
+
+model Country {
+  id          String @id
+  name        String @unique
+  continentId String
+  iso2        String @unique
+
+  Continent Continent @relation(fields: [continentId], references: [id])
+  Records   Record[]
+  Person    Person[]
+}
+
+model Continent {
+  id         String    @id
+  name       String    @unique
+  recordName String?
+  Country    Country[]
+  Records    Record[]
 }
 
 model Event {

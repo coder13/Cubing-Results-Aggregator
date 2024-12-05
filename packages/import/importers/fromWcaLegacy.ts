@@ -24,11 +24,13 @@ export const importFromWcaLegacy = async (_competitionId: string) => {
     await upsertCompetition(competition);
 
     await prisma.person.createMany({
-      data: competitors.map((competitor) => ({
-        wcaId: competitor.id,
-        name: competitor.name,
-        countryId: competitor.country_iso2,
-      })),
+      data: competitors.map(
+        ({ id: wcaId, name, country_iso2: countryIso2 }) => ({
+          wcaId,
+          name,
+          countryIso2,
+        }),
+      ),
       skipDuplicates: true,
     });
 
@@ -51,6 +53,7 @@ export const importFromWcaLegacy = async (_competitionId: string) => {
     });
 
     await bulkCreateOfficalResults(
+      competition,
       competitionId,
       allPersons,
       allRounds,

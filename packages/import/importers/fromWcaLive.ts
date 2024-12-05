@@ -70,6 +70,7 @@ export const importFromWcaLive = async (_competitionId: string) => {
               attempts: result.attempts,
               pos: result.ranking,
               average: result.average,
+              date: comp.start_date,
             };
 
             return data;
@@ -124,6 +125,7 @@ export const importFromWcaLive = async (_competitionId: string) => {
                 average: result.average,
                 pos: result.ranking,
                 source: ResultSource.WCA_LIVE,
+                date: comp.start_date,
               },
             });
           }),
