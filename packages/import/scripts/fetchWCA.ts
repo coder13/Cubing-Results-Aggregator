@@ -1,7 +1,7 @@
-import { importFromWca } from "../lib/importers/fromWca";
-import { importFromWcaLegacy } from "../lib/importers/fromWcaLegacy";
-import { importFromWcaLive } from "../lib/importers/fromWcaLive";
-import { importFromWcif } from "../lib/importers/fromWcif";
+import { importFromWca } from "../importers/fromWca";
+import { importFromWcaLegacy } from "../importers/fromWcaLegacy";
+import { importFromWcaLive } from "../importers/fromWcaLive";
+import { importFromWcif } from "../importers/fromWcif";
 
 const importer = process.argv[2];
 const competitionIdParam = process.argv[3];
