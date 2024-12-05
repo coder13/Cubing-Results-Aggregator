@@ -5,7 +5,6 @@ import {
   upsertCompetition,
   upsertRoundsFromResults,
 } from "../helpers";
-import { Competition } from "@wca/helpers";
 import { Prisma, ResultSource } from "@prisma/client";
 import { getRoundTypeFromId } from "../rounds";
 

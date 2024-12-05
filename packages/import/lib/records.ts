@@ -79,19 +79,19 @@ export const getPersonalRecords = async (
   return records;
 };
 
-export const updateRecords = async (competitionId: string) => {
-  const competition = await prisma.competition.findUnique({
-    where: {
-      wcaId: competitionId,
-    },
-    include: {
-      Results: {
-        include: {
-          Person: true,
-        },
-      },
-      Competitors: true,
-    },
-  });
-  // const allRecords = getRecords(
-};
+// export const updateRecords = async (competitionId: string) => {
+//   const competition = await prisma.competition.findUnique({
+//     where: {
+//       wcaId: competitionId,
+//     },
+//     include: {
+//       Results: {
+//         include: {
+//           Person: true,
+//         },
+//       },
+//       Competitors: true,
+//     },
+//   });
+// const allRecords = getRecords(
+// };

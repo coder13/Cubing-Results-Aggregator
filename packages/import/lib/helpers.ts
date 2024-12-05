@@ -93,23 +93,6 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
     return person.id;
   };
 
-  const newPeople = await prisma.registration.createManyAndReturn({
-    data: wcif.persons
-      .filter(
-        ({ registration }) =>
-          registration && registration.status === "accepted",
-      )
-      .map((person) => {
-        return {
-          personId: getPersonIdFromWcaUserId(person.wcaUserId),
-          competitionId,
-          registrantId: person.registrantId,
-          status: RegistrationStatus.ACCEPTED,
-        };
-      }),
-    skipDuplicates: true,
-  });
-
   // Update registrations that might have been deleted to be deleted
   await prisma.registration.updateMany({
     where: {

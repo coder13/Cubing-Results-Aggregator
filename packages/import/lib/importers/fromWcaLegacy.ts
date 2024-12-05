@@ -1,7 +1,5 @@
 import { WcaApi } from "@datasources/wca";
 import { prisma } from "../db";
-import { getRoundTypeFromId } from "../rounds";
-import { Prisma, ResultSource } from "@prisma/client";
 import {
   bulkCreateOfficalResults,
   upsertCompetition,
