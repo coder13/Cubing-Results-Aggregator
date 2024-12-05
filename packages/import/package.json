@@ -7,7 +7,6 @@
     "lint": "eslint .",
     "test": "jest -i"
   },
-  "type": "module",
   "dependencies": {
     "@datasources/wca": "0.0.0",
     "@datasources/wca-live": "0.0.0",

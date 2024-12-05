@@ -46,7 +46,7 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
     .map((i) => i.registrantId);
 
   // Create new people
-  await prisma.person.createMany({
+  const newPersons = await prisma.person.createMany({
     data: wcif.persons
       .filter(
         ({ registration }) =>
@@ -65,6 +65,8 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
     skipDuplicates: true,
   });
 
+  console.log(`Created ${newPersons.count} new persons`);
+
   // by this point, all persons are in the db and we just need their db IDs
   const persons = await prisma.person.findMany({
     where: {
@@ -73,6 +75,8 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
       },
     },
   });
+
+  console.log(`Found ${persons.length} persons`);
 
   await prisma.competition.update({
     where: {
@@ -92,6 +96,22 @@ export const upsertPeopleAndRegistrationsFromWcif = async ({
     }
     return person.id;
   };
+
+  await prisma.registration.createMany({
+    data: wcif.persons
+      .filter(({ registration }) => registration)
+      .map((person) => {
+        const data: Prisma.RegistrationCreateManyInput = {
+          competitionId,
+          registrantId: person.registrantId!,
+          status: RegistrationStatus.ACCEPTED,
+          personId: getPersonIdFromWcaUserId(person.wcaUserId),
+        };
+
+        return data;
+      }),
+    skipDuplicates: true,
+  });
 
   // Update registrations that might have been deleted to be deleted
   await prisma.registration.updateMany({

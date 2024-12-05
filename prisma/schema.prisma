@@ -55,7 +55,6 @@ model Result {
 
 model Records {
   id         Int        @id @default(autoincrement())
-  date       String
   eventId    String
   resultId   Int
   type       RecordType
@@ -67,7 +66,7 @@ model Records {
 
   Result Result @relation(fields: [resultId], references: [id])
 
-  @@unique([date, eventId, type, countryId, continent])
+  @@unique([resultId, eventId, type, regionType])
 }
 
 model Round {

@@ -1,4 +1,3 @@
-import { Competition } from "@wca/helpers";
 import { WcaLiveResultsResponse } from "./types";
 
 export class WcaLiveApi {

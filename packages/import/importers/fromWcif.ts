@@ -7,6 +7,7 @@ import {
   upsertPeopleAndRegistrationsFromWcif,
   upsertRoundsFromWcif,
 } from "../lib/helpers";
+import { updateRecords } from "../lib/records";
 
 /**
  * Import a competition and results from the wca website via the WCIF.
@@ -40,6 +41,11 @@ export const importFromWcif = async (_competitionId: string) => {
         eventId: true,
         roundNumber: true,
         personId: true,
+        Person: {
+          select: {
+            countryId: true,
+          },
+        },
       },
       data: wcif.events.flatMap(({ id: eventId, rounds }) =>
         rounds.flatMap(({ id: roundId, ...round }) =>
@@ -129,4 +135,6 @@ export const importFromWcif = async (_competitionId: string) => {
       ),
     );
   });
+
+  await updateRecords(competitionId);
 };
