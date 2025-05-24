@@ -1,10 +1,10 @@
-import { WcaApi } from "@datasources/wca";
 import { prisma } from "../lib/db";
 import {
   bulkCreateOfficalResults,
   upsertCompetition,
   upsertRoundsFromResults,
 } from "../lib/helpers";
+import { wcaApi } from "../lib/wcaApi";
 
 /**
  * Import a competition and results from the wca website
@@ -12,8 +12,6 @@ import {
  * This is necessary for comps that were not in the WCIF format.
  */
 export const importFromWcaLegacy = async (_competitionId: string) => {
-  const wcaApi = new WcaApi();
-
   const competition = await wcaApi.getCompetitionById(_competitionId);
   const competitionId = competition.id;
 
@@ -42,8 +40,6 @@ export const importFromWcaLegacy = async (_competitionId: string) => {
       },
     });
 
-    console.log(competitors.length, allPersons);
-
     await upsertRoundsFromResults(competitionId, results);
 
     const allRounds = await prisma.round.findMany({
@@ -60,4 +56,6 @@ export const importFromWcaLegacy = async (_competitionId: string) => {
       results,
     );
   });
+
+  return competition;
 };

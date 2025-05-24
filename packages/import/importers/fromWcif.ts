@@ -1,4 +1,3 @@
-import { WcaApi } from "@datasources/wca";
 import { prisma } from "../lib/db";
 import { parseActivityCode } from "@wca/helpers";
 import { Prisma, ResultSource } from "@prisma/client";
@@ -7,15 +6,12 @@ import {
   upsertPeopleAndRegistrationsFromWcif,
   upsertRoundsFromWcif,
 } from "../lib/helpers";
-import { recalculateRecords } from "../lib/records";
+import { wcaApi } from "../lib/wcaApi";
 
 /**
  * Import a competition and results from the wca website via the WCIF.
  */
 export const importFromWcif = async (_competitionId: string) => {
-  const wcaApi = new WcaApi();
-
-  // await new Promise((resolve) => setTimeout(resolve, 10000));
   const comp = await wcaApi.getCompetitionById(_competitionId);
 
   const wcif = await wcaApi.getWcifByCompetitionId(_competitionId);
@@ -137,5 +133,5 @@ export const importFromWcif = async (_competitionId: string) => {
     );
   });
 
-  await recalculateRecords(comp.start_date);
+  return comp;
 };

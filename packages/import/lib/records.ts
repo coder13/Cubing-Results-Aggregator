@@ -98,6 +98,7 @@ const getBestResults = <T extends Result>(type: RecordType, results: T[]) => {
 };
 
 export const recalculateRecords = async (date: string) => {
+  const recordsToBeCreated: Prisma.RecordCreateManyInput[] = [];
   // find all results that were active on the date of the competition
   const results = await prisma.result.findMany({
     include: {
@@ -145,6 +146,22 @@ export const recalculateRecords = async (date: string) => {
     return acc;
   }, [] as string[]);
 
+  const countries = results.reduce((acc, r) => {
+    if (!acc.includes(r.Person.Country.id)) {
+      acc.push(r.Person.Country.id);
+    }
+    return acc;
+  }, [] as string[]);
+
+  const personWcaIds = results
+    .filter((r) => !!r.Person.wcaId)
+    .reduce((acc, r) => {
+      if (!acc.includes(r.Person.wcaId!)) {
+        acc.push(r.Person.wcaId!);
+      }
+      return acc;
+    }, [] as string[]);
+
   console.log(`Updating records for ${date} across events: ${eventIds.length}`);
 
   // need to catch records that were active on the date of the comp and after
@@ -180,7 +197,7 @@ export const recalculateRecords = async (date: string) => {
     ],
   };
 
-  const getRecords = async (eventId: string, input: Prisma.RecordWhereInput) =>
+  const getRecords = async (input: Prisma.RecordWhereInput) =>
     prisma.record.findMany({
       include: {
         Result: {
@@ -190,79 +207,167 @@ export const recalculateRecords = async (date: string) => {
         },
       },
       where: {
-        AND: [input, { eventId }, dateWhere],
+        AND: [input, dateWhere],
       },
       orderBy: {
         valid_from: "asc",
       },
     });
 
-  await prisma.$transaction(async () => {
-    for (const eventId of eventIds) {
-      console.log(159, eventId);
-      const eventResults = results.filter((r) => r.eventId === eventId);
+  await prisma.$transaction(
+    async () => {
+      for (const eventId of eventIds) {
+        console.log(159, eventId);
+        const eventResults = results.filter((r) => r.eventId === eventId);
 
-      console.log(159, eventResults.length);
+        console.log(159, eventResults.length);
 
-      if (eventResults.length === 0) {
-        continue;
-      }
+        if (eventResults.length === 0) {
+          continue;
+        }
 
-      // Recalculate World Records
-      const WRs = await getRecords(eventId, { regionType: RegionType.WORLD });
-
-      for (const recordType of [RecordType.SINGLE, RecordType.AVERAGE]) {
-        // find the WR right before the competition
-        const records = WRs.filter(
-          (r) => r.type === recordType && r.valid_from <= date,
-        );
-
-        //   single
-        const bestOverallSingles = getBestResults(recordType, eventResults);
-        await updateRecords(
-          { regionType: RegionType.WORLD, type: recordType },
-          records,
-          bestOverallSingles,
-        );
-      }
-
-      // Recalculate Continental Records
-
-      for (const continentId of continents) {
-        console.log(`Calulating for continent ${continentId}`);
-        const CRs = await getRecords(eventId, {
-          regionType: RegionType.CONTINENT,
-          continentId,
-        });
+        // Recalculate World Records
+        const WRs = await getRecords({ eventId, regionType: RegionType.WORLD });
 
         for (const recordType of [RecordType.SINGLE, RecordType.AVERAGE]) {
           // find the WR right before the competition
-          const records = CRs.filter(
+          const records = WRs.filter(
             (r) => r.type === recordType && r.valid_from <= date,
           );
 
-          //   single
-          const bestOverallSingles = getBestResults(recordType, eventResults);
-          await updateRecords(
-            {
-              regionType: RegionType.CONTINENT,
-              type: recordType,
-              continentId,
-            },
+          const bestResults = getBestResults(recordType, eventResults);
+          const newRecords = await updateRecords(
+            { regionType: RegionType.WORLD, type: recordType },
             records,
-            bestOverallSingles,
+            bestResults,
           );
+          if (newRecords) {
+            recordsToBeCreated.push(...newRecords);
+          }
+        }
+
+        // Recalculate Continental Records
+
+        for (const continentId of continents) {
+          console.log(`Calulating for continent ${continentId}`);
+          const CRs = await getRecords({
+            eventId,
+            regionType: RegionType.CONTINENT,
+            continentId,
+          });
+
+          for (const recordType of [RecordType.SINGLE, RecordType.AVERAGE]) {
+            // find the WR right before the competition
+            const records = CRs.filter(
+              (r) => r.type === recordType && r.valid_from <= date,
+            );
+
+            //   single
+            const bestResults = getBestResults(recordType, eventResults);
+            const newRecords = await updateRecords(
+              {
+                regionType: RegionType.CONTINENT,
+                type: recordType,
+                continentId,
+              },
+              records,
+              bestResults,
+            );
+            if (newRecords) {
+              recordsToBeCreated.push(...newRecords);
+            }
+          }
+        }
+
+        for (const countryId of countries) {
+          console.log(`Calulating for continent ${countryId}`);
+          const NRs = await getRecords({
+            eventId,
+            regionType: RegionType.COUNTRY,
+            countryId,
+          });
+
+          for (const recordType of [RecordType.SINGLE, RecordType.AVERAGE]) {
+            const records = NRs.filter(
+              (r) => r.type === recordType && r.valid_from <= date,
+            );
+
+            const bestResults = getBestResults(recordType, eventResults);
+            const newRecords = await updateRecords(
+              {
+                regionType: RegionType.COUNTRY,
+                type: recordType,
+                countryId,
+              },
+              records,
+              bestResults,
+            );
+
+            if (newRecords) {
+              recordsToBeCreated.push(...newRecords);
+            }
+          }
+        }
+      }
+      for (const wcaId of personWcaIds) {
+        // console.log(`Calulating PRs for person ${wcaId}`);
+
+        const PRs = await getRecords({
+          regionType: RegionType.PERSONAL,
+          Result: {
+            Person: {
+              wcaId,
+            },
+          },
+        });
+
+        for (const eventId of eventIds) {
+          const eventResults = results.filter(
+            (r) => r.eventId === eventId && r.Person.wcaId === wcaId,
+          );
+
+          for (const recordType of [RecordType.SINGLE, RecordType.AVERAGE]) {
+            const records = PRs.filter(
+              (r) =>
+                r.eventId === eventId &&
+                r.type === recordType &&
+                r.valid_from <= date,
+            );
+
+            const bestResults = getBestResults(recordType, eventResults);
+            const newRecords = await updateRecords(
+              {
+                regionType: RegionType.PERSONAL,
+                type: recordType,
+              },
+              records,
+              bestResults,
+            );
+
+            if (newRecords) {
+              recordsToBeCreated.push(...newRecords);
+            }
+          }
         }
       }
 
-      // update NRs
-      // update PRs
-    }
-  });
+      if (recordsToBeCreated.length > 0) {
+        await prisma.record.createMany({
+          data: recordsToBeCreated,
+          skipDuplicates: true,
+        });
+      }
+    },
+    {
+      timeout: 30 * 1000,
+      maxWait: 30 * 1000,
+    },
+  );
 };
 
 /**
  * Determines if a result ties or beats the current record, terminates current records, and creates new records
+ * Returns a list of new records to be created
  */
 export const updateRecords = async (
   {
@@ -276,79 +381,99 @@ export const updateRecords = async (
   >,
   currentRecords: (Record & { Result: Result })[],
   bestResults?: Result[],
-) => {
+): Promise<Prisma.RecordCreateManyInput[]> => {
   const prop = type === RecordType.SINGLE ? "best" : "average";
 
   if (!bestResults) {
-    return;
+    return [];
   }
 
   const bestTime = bestResults[0][prop];
 
   if (!bestTime) {
-    return;
+    return [];
   }
 
   // If the record doesn't exist, make best Result the new record
   if (currentRecords.length === 0) {
     // set bestOverallSingle as the WR
-    return Promise.all(
-      bestResults.map(async (bestResult) => {
-        const create: Prisma.RecordCreateInput = {
-          Result: {
-            connect: {
-              id: bestResult.id,
-            },
-          },
-          eventId: bestResult.eventId,
-          regionType,
-          type,
-          valid_from: bestResult.date,
-          ...(continentId && {
-            Continent: {
-              connect: {
-                id: continentId,
-              },
-            },
-          }),
-          ...(countryId && {
-            Country: {
-              connect: {
-                id: countryId,
-              },
-            },
-          }),
-        };
-
-        return await prisma.record.upsert({
-          where: {
-            resultId_type_regionType: {
-              resultId: bestResult.id,
-              regionType,
-              type,
-            },
-          },
-          create,
-          update: {},
-        });
+    return bestResults.map((bestResult) =>
+      createCreateRecordInput({
+        regionType,
+        type,
+        resultId: bestResult.id,
+        eventId: bestResult.eventId,
+        date: bestResult.date,
       }),
     );
+    // return Promise.all(
+    //   bestResults.map(async (bestResult) => {
+    //     const create: Prisma.RecordCreateInput = {
+    //       Result: {
+    //         connect: {
+    //           id: bestResult.id,
+    //         },
+    //       },
+    //       eventId: bestResult.eventId,
+    //       regionType,
+    //       type,
+    //       valid_from: bestResult.date,
+    //       ...(continentId && {
+    //         Continent: {
+    //           connect: {
+    //             id: continentId,
+    //           },
+    //         },
+    //       }),
+    //       ...(countryId && {
+    //         Country: {
+    //           connect: {
+    //             id: countryId,
+    //           },
+    //         },
+    //       }),
+    //     };
+
+    //     return await prisma.record.upsert({
+    //       where: {
+    //         resultId_type_regionType: {
+    //           resultId: bestResult.id,
+    //           regionType,
+    //           type,
+    //         },
+    //       },
+    //       create,
+    //       update: {},
+    //     });
+    //   })
+    // );
   }
 
   const recordTime = currentRecords[0].Result[prop];
 
   if (!recordTime) {
-    return;
+    return [];
   }
 
   if (bestTime === recordTime) {
     // create new tied records (if not exist)
-    return await createNewRecords(bestResults, {
-      regionType,
-      type,
-      continentId,
-      countryId,
-    });
+    // return await createNewRecords(bestResults, {
+    //   regionType,
+    //   type,
+    //   continentId,
+    //   countryId,
+    // });
+    return bestResults.map((bestResult) =>
+      createCreateRecordInput({
+        regionType,
+        type,
+        resultId: bestResult.id,
+        eventId: bestResult.eventId,
+        date: bestResult.date,
+        continentId: continentId || undefined,
+        countryId: countryId || undefined,
+      }),
+    );
   }
 
   if (bestTime < recordTime) {
@@ -366,14 +491,29 @@ export const updateRecords = async (
       },
     });
 
+    return bestResults.map((bestResult) =>
+      createCreateRecordInput({
+        regionType,
+        type,
+        resultId: bestResult.id,
+        eventId: bestResult.eventId,
+        date: bestResult.date,
+        continentId: continentId || undefined,
+        countryId: countryId || undefined,
+      }),
+    );
+
     // create new WR
-    await createNewRecords(bestResults, {
-      regionType,
-      type,
-      continentId,
-      countryId,
-    });
+    // await createNewRecords(bestResults, {
+    //   regionType,
+    //   type,
+    //   continentId,
+    //   countryId,
+    // });
+    // bestResults.forEach((bestResult) => {
+    //   newRecords.push({
   }
+  return [];
 };
 
 /**
@@ -431,4 +571,51 @@ export const createNewRecords = async (
       });
     }),
   );
+};
+
+export const createCreateRecordInput = ({
+  regionType,
+  type,
+  continentId,
+  countryId,
+  resultId,
+  eventId,
+  date,
+}: {
+  regionType: RegionType;
+  type: RecordType;
+  resultId: number;
+  eventId: string;
+  date: string;
+  continentId?: string;
+  countryId?: string;
+}): Prisma.RecordCreateManyInput => {
+  return {
+    // Result: {
+    //   connect: {
+    //     id: resultId,
+    //   },
+    // },
+    resultId,
+    eventId,
+    regionType,
+    type,
+    valid_from: date,
+    continentId,
+    countryId,
+    // ...(continentId && {
+    //   Continent: {
+    //     connect: {
+    //       id: continentId,
+    //     },
+    //   },
+    // }),
+    // ...(countryId && {
+    //   Country: {
+    //     connect: {
+    //       id: countryId,
+    //     },
+    //   },
+    // }),
+  };
 };

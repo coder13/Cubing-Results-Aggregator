@@ -1,4 +1,4 @@
-import { SimpleApiUser, WcaApi } from "@datasources/wca";
+import { SimpleApiUser } from "@datasources/wca";
 import { prisma } from "../lib/db";
 import {
   bulkCreateOfficalResults,
@@ -7,8 +7,7 @@ import {
 } from "../lib/helpers";
 import { Prisma, ResultSource } from "@prisma/client";
 import { getRoundTypeFromId } from "../lib/rounds";
-
-const wcaApi = new WcaApi();
+import { wcaApi } from "../lib/wcaApi";
 
 /**
  * This importer is designed to follow up wca-live and make results official.
@@ -16,10 +15,13 @@ const wcaApi = new WcaApi();
  * This merges wcif/wca-live/offical wca data
  */
 export const importFromWca = async (_competitionId: string) => {
-  // await new Promise((resolve) => setTimeout(resolve, 10000));
-  const comp = await wcaApi.getCompetitionById(_competitionId);
+  // Fetch data in parallel
+  const [comp, wcif, results] = await Promise.all([
+    wcaApi.getCompetitionById(_competitionId),
+    wcaApi.getWcifByCompetitionId(_competitionId),
+    wcaApi.getResultsByCompetitionId(_competitionId),
+  ]);
 
-  const wcif = await wcaApi.getWcifByCompetitionId(_competitionId);
   if (!wcif) {
     throw new Error(`No WCIF found for competition ${_competitionId}`);
   }
@@ -29,8 +31,6 @@ export const importFromWca = async (_competitionId: string) => {
   const users = (await wcaApi.userLoader.loadMany(personIds)).filter(
     (value) => !(value instanceof Error),
   ) as SimpleApiUser[];
-
-  const results = await wcaApi.getResultsByCompetitionId(_competitionId);
 
   const competitionId = wcif.id;
 
@@ -102,6 +102,8 @@ export const importFromWca = async (_competitionId: string) => {
       }),
     );
   });
+
+  return comp;
 };
 
 /**

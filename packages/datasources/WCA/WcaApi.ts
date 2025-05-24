@@ -1,9 +1,11 @@
 import { Competition } from "@wca/helpers";
 import { ApiCompetition, APIPerson, ApiResult, SimpleApiUser } from "./types";
 import DataLoader from "dataloader";
+import { InMemoryLRUCache } from "@apollo/utils.keyvaluecache";
 
 export class WcaApi {
   public userLoader: DataLoader<number, SimpleApiUser>;
+  private cache = new InMemoryLRUCache<object>({ max: 250 });
 
   constructor(
     private readonly baseUrl: string = "https://api.worldcubeassociation.org",
@@ -17,10 +19,14 @@ export class WcaApi {
   }
 
   async fetch<T>(path: string, options: RequestInit = {}) {
-    console.log("Fetching", this.baseUrl, path.toString());
+    console.log("Fetching", `${this.baseUrl}${path}`);
     const url = new URL(`${this.baseUrl}${path}`);
 
     const response = await fetch(url.toString(), options);
+    if (!response.ok) {
+      console.error(await response.text());
+      throw new Error(`Failed to fetch ${url.toString()} ${response.status}`);
+    }
     return (await response.json()) as T;
   }
 
@@ -44,20 +50,35 @@ export class WcaApi {
     });
   }
 
-  async getCompetitions(params: {
-    country_iso2?: string;
-    start?: string;
-    end?: string;
-    ongoing_and_future?: string;
-    sort?: string;
-    page?: number;
-    announced_after?: string;
-  }) {
-    return this.get<ApiCompetition[]>(`/competitions`, params);
+  async getCompetitions(
+    params: {
+      country_iso2?: string;
+      start?: string;
+      end?: string;
+      ongoing_and_future?: string;
+      sort?: string;
+      page?: number;
+      announced_after?: string;
+    } = {},
+  ) {
+    const comps = await this.get<ApiCompetition[]>(`/competitions`, params);
+    comps.forEach((comp) => this.cache.set(`competition/${comp.id}`, comp));
+    return comps;
   }
 
   async getCompetitionById(competitionId: string) {
-    return this.get<ApiCompetition>(`/competitions/${competitionId}`);
+    const cacheKey = `competition/${competitionId}`;
+    if (this.cache.keys().includes(cacheKey)) {
+      return (await this.cache.get(cacheKey)) as ApiCompetition;
+    }
+
+    console.log(`comp ${competitionId} not in cache, fetching from source`);
+
+    const res = await this.get<ApiCompetition>(
+      `/competitions/${competitionId}`,
+    );
+    this.cache.set(cacheKey, res);
+    return res;
   }
 
   async getResultsByCompetitionId(competitionId: string) {
@@ -68,7 +89,15 @@ export class WcaApi {
   }
 
   async getWcifByCompetitionId(competitionId: string) {
-    return this.get<Competition>(`/competitions/${competitionId}/wcif/public`);
+    const cacheKey = `wcif/${competitionId}`;
+    if (this.cache.keys().includes(competitionId)) {
+      return (await this.cache.get(cacheKey)) as Competition;
+    }
+    const wcif = this.get<Competition>(
+      `/competitions/${competitionId}/wcif/public`,
+    );
+    this.cache.set(cacheKey, wcif);
+    return wcif;
   }
 
   async getUsers(userIds: readonly number[]) {

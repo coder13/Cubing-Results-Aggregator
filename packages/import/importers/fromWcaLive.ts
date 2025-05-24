@@ -1,4 +1,3 @@
-import { WcaApi } from "@datasources/wca";
 import { prisma } from "../lib/db";
 import {
   upsertCompetition,
@@ -7,9 +6,9 @@ import {
 } from "../lib/helpers";
 import { WcaLiveApi } from "@datasources/wca-live";
 import { Prisma, ResultSource } from "@prisma/client";
+import { wcaApi } from "../lib/wcaApi";
 
 export const importFromWcaLive = async (_competitionId: string) => {
-  const wcaApi = new WcaApi();
   const wcaLiveApi = new WcaLiveApi();
 
   const comp = await wcaApi.getCompetitionById(_competitionId);
@@ -135,4 +134,6 @@ export const importFromWcaLive = async (_competitionId: string) => {
 
     console.log(`Updated ${changed} results`);
   });
+
+  return comp;
 };
